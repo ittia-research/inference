@@ -1,42 +1,23 @@
+import logging
+import os
 from typing import List, Optional
-
 from fastapi import FastAPI, HTTPException, Depends, status
 from pydantic import BaseModel, Field
 
 import torch
 import torch.nn.functional as F
 from torch import Tensor
-from transformers import AutoTokenizer, AutoModel, AutoConfig
-
 import torch_xla.runtime as xr
 import torch_xla.core.xla_model as xm
+from transformers import AutoTokenizer, AutoModel, AutoConfig
 
-import logging
-import os
+from core.config import settings
 
-os.environ['PT_XLA_DEBUG'] = "1"
-os.environ["PJRT_DEVICE"] = "TPU"
-
-cache_dir = "~/.cache/xla"
-
-MODEL_ID = 'Alibaba-NLP/gte-Qwen2-1.5B-instruct'
-# MODEL_ID = 'Alibaba-NLP/gte-Qwen2-7B-instruct'
-
-# logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
-
-# Configure logging to output to console in uvicorn
-logger.setLevel(logging.DEBUG) # Set logger level to DEBUG
-console_handler = logging.StreamHandler() # Create a handler that writes to the console
-console_handler.setLevel(logging.DEBUG) # Set handler level to DEBUG too, or higher if needed
-formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s') # Define the format
-logger.propagate = False
-console_handler.setFormatter(formatter) # Apply the format to the handler
-logger.addHandler(console_handler) # Add the handler to your logger
 
 
 class EmbeddingModel:
-    def __init__(self, model_name, max_length=1536, batch_size=3):
+    def __init__(self, model_name, max_length=settings.EMBEDDING_MAX_LENGTH, batch_size=settings.EMBEDDING_BATCH_SIZE):
         logger.info("Initializing EmbeddingModel...")
         self.model_name = model_name
         self.max_length = max_length
@@ -75,7 +56,7 @@ class EmbeddingModel:
             
         try:
             rank = xr.global_ordinal()
-            per_rank_path = os.path.join(cache_dir, f"rank_{rank}")
+            per_rank_path = os.path.join(settings.XLA_CACHE_DIR, f"rank_{rank}")
             os.makedirs(per_rank_path, exist_ok=True)
             xr.initialize_cache(per_rank_path, readonly=False)
             logger.info(f"XLA persistent cache initialized at: {per_rank_path}")
@@ -257,9 +238,8 @@ class OpenAIEmbeddingsResponse(BaseModel):
 @app.on_event("startup")
 async def startup_event():
     logger.info("Starting FastAPI application and loading EmbeddingModel...")
-    model_id = MODEL_ID
     try:
-        app.state.embedding_model = EmbeddingModel(model_id) # Store in app state
+        app.state.embedding_model = EmbeddingModel(settings.EMBEDDING_MODEL_ID) # Store in app state
         logger.info("EmbeddingModel loaded successfully into application state.")
     except Exception as e:
         logger.error(f"Error loading EmbeddingModel during startup: {e}")

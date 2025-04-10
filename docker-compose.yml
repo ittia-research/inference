@@ -7,6 +7,8 @@ services:
     volumes:
       - "./src:/app"
       - "/mnt/ram:/root/.cache"
+    env_file:
+      - .env.example
     ports:
       - "8000:8000"
     command: python -m uvicorn main:app --host 0.0.0.0 --port 8000 --reload

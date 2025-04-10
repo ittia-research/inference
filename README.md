@@ -7,3 +7,17 @@ Project: There are a lot of good inferencing project outthere. The project is ma
 - Supported devices: Google TPU
 - Supported models: Alibaba-NLP/gte-Qwen2-1.5B-instruct
 - API: REST compateble with OpenAI format
+
+## Quick Start
+```bash
+git pull https://github.com/ittia-research/inference
+cd inference
+docker compose up -d
+docker compose logs -f
+```
+
+## Other Docs
+[Roadmap](./docs/roadmap.md)
+
+## Acknowledgements
+- TPU Research Cloud team at Google
