@@ -1,0 +1,11 @@
+.*
+build
+
+# Logs
+logs
+*.log
+
+# Python build outputs and dependencies
+__pycache__
+*.pyc
+*.egg-info
